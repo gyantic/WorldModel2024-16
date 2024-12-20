@@ -1,6 +1,6 @@
 expname: knee_all_360
 data:
-  datadir: /projects/mednerf_drr_dataset/knee_xrays
+  datadir: graf-main/projects/mednerf_drr_dataset/knee_xrays
   imsize: 128
   white_bkgd: False
   radius: 9.5,10.5
