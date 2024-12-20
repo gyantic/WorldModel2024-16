@@ -9,13 +9,13 @@ from GAN_stability.gan_training.train import toggle_grad
 def load_config(path, default_path):
     ''' Loads config file.
 
-    Args:  
+    Args:
         path (str): path to config file
         default_path (bool): whether to use default path
     '''
     # Load configuration from file itself
     with open(path, 'r') as f:
-        cfg_special = yaml.load(f)
+        cfg_special = yaml.safe_load(f)
 
     # Check if we should inherit from a config
     inherit_from = cfg_special.get('inherit_from')
