@@ -6,7 +6,6 @@ import numpy as np
 from functools import partial
 
 # TODO: remove this dependency
-from torchsearchsorted import searchsorted
 
 
 # Misc
