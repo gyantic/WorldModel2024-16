@@ -2,7 +2,6 @@ absl-py==0.11.0
 backcall==0.2.0
 ConfigArgParse==1.2.3
 cycler==0.10.0
-dataclasses==0.8
 decorator==4.4.2
 distro==1.5.0
 grpcio==1.38.1
