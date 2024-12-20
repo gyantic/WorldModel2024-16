@@ -1,6 +1,6 @@
 expname: knee_all_360
 data:
-  datadir: /home/kyuta/WorldModel2024-16/graf-main/projects/mednerf_drr_dataset/knee_xrays
+  datadir: projects/mednerf_drr_dataset/knee_xrays
   imsize: 128
   white_bkgd: False
   radius: 9.5,10.5
