@@ -1,6 +1,6 @@
 expname: knee_all_360
 data:
-  datadir: /projects/cgw/medical/knee_xrays
+  datadir: /projects/mednerf_drr_dataset/knee_xrays
   imsize: 128
   white_bkgd: False
   radius: 9.5,10.5
@@ -10,6 +10,6 @@ data:
   umin: 0 # 0 deg
   umax: 1. # 360 deg
   vmin: 0.32898992833716556 # 70 deg
-  vmax: 0.45642212862617093   # 85 deg
+  vmax: 0.45642212862617093 # 85 deg
 training:
   nworkers: 0
