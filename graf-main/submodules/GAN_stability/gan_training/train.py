@@ -59,13 +59,13 @@ class Trainer(object):
         x_fake = x_fake[:, :3]
         x_fake = x_fake.view(-1, 32,32, 3).permute(0, 3, 1, 2)
         x_fake = augmenting_data(x_fake, self.aug_policy, augment_list[self.aug_policy])
-        
+
         for i in range(len(x_fake)):
             outputs = self.discriminator(x_fake[i], y)
             # On original data
             if i == 0:
                 GI_loss = -outputs[i].mean()
-            else:    
+            else:
                 # On augmented data
                 GA_loss += -outputs[i].mean()
 
@@ -109,7 +109,7 @@ class Trainer(object):
 
         dloss_real.backward()
 
-        
+
         # On fake data
         with torch.no_grad():
             x_fake = self.generator(z, y)
@@ -136,6 +136,11 @@ class Trainer(object):
 
         if self.reg_type == 'fake' or self.reg_type == 'real_fake':
             dloss_fake.backward(retain_graph=True)
+
+            d_fake = fake_outputs[0]
+
+            # 勾配ペナルティ計算時に使う入力も対応するものにする
+    # x_fake[0] に対して勾配を計算するので、x_fake[0] を渡します。
             reg = self.reg_param * compute_grad2(d_fake, x_fake).mean()
             reg.backward()
         else:
