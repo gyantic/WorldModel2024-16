@@ -26,7 +26,7 @@ def load_config(path, default_path):
         cfg = load_config(inherit_from, default_path)
     elif default_path is not None:
         with open(default_path, 'r') as f:
-            cfg = yaml.load(f)
+            cfg = yaml.safe_load(f)
     else:
         cfg = dict()
 
