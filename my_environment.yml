@@ -177,8 +177,8 @@ dependencies:
       - tensorboardx==2.1
       - threadpoolctl==2.1.0
       - tifffile==2020.9.3
-      - torch==2.4.0+cu118
-      - torchaudio==2.4.0+cu118
+      - torch==1.9.0+cu118
+      - torchaudio==1.9.0+cu118
       - torchvision==0.15.0+cu118
       - tqdm==4.61.1
       - traitlets==4.3.3
