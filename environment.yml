@@ -1,0 +1,13 @@
+name: myenv
+channels:
+  - conda-forge
+  - pytorch
+  - nvidia
+  - defaults
+dependencies:
+  - python=3.8.20
+  - pytorch=2.0.0
+  - torchvision=0.14.0
+  - torchaudio=2.0.0
+  - pytorch-cuda=11.8
+  - pip
