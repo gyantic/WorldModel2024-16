@@ -9,6 +9,7 @@ channels:
 dependencies:
   - python=3.8
   - _libgcc_mutex=0.1=conda_forge
+  - pip
   - _openmp_mutex=4.5=2_gnu
   - binutils_impl_linux-64=2.40=h5293946_0
   - blas=1.0=mkl
