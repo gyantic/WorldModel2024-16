@@ -36,8 +36,9 @@ if __name__ == '__main__':
     )
     parser.add_argument('config', type=str, help='Path to config file.')
 
-    args, unknown = parser.parse_known_args() 
+    args, unknown = parser.parse_known_args()
     config = load_config(args.config, 'configs/default.yaml')
+    #default.yamlの設定をconfigに入れる：出力先の指定を行うところ arg.connfigはコマンドラインで指定したconfig用のyamlファイル
     config['data']['fov'] = float(config['data']['fov'])
     config = update_config(config, unknown)
 
@@ -53,11 +54,31 @@ if __name__ == '__main__':
     out_dir = os.path.join(config['training']['outdir'], config['expname'])
     checkpoint_dir = path.join(out_dir, 'chkpts')
 
+    print(f"Output Directory: {out_dir}")
+    print(f"Checkpoint Directory: {checkpoint_dir}")
+
     # Create missing directories
+    '''
     if not path.exists(out_dir):
         os.makedirs(out_dir)
     if not path.exists(checkpoint_dir):
         os.makedirs(checkpoint_dir)
+    '''
+    try:
+        if not path.exists(out_dir):
+            os.makedirs(out_dir)
+            print(f"Created output directory at: {out_dir}")
+        else:
+            print(f"Output directory already exists at: {out_dir}")
+
+        if not path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir)
+            print(f"Created checkpoint directory at: {checkpoint_dir}")
+        else:
+            print(f"Checkpoint directory already exists at: {checkpoint_dir}")
+    except Exception as e:
+        print(f"Error creating directories: {e}")
+
 
     # Save config file
     save_config(os.path.join(out_dir, 'config.yaml'), config)
@@ -115,7 +136,7 @@ if __name__ == '__main__':
         d_optimizer=d_optimizer,
         **generator.module_dict     # treat NeRF specially
     )
-    
+
     # Get model file
     model_file = config['training']['model_file']
     stats_file = 'stats_00049999.p'

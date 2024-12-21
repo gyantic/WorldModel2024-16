@@ -1,6 +1,5 @@
 expname: knee_all_360
 data:
-  outdir: projects/results/knee_all_360
   datadir: projects/mednerf_drr_dataset/knee_xrays_exp
   imsize: 128
   white_bkgd: False
