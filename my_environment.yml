@@ -7,7 +7,6 @@ channels:
   - https://repo.anaconda.com/pkgs/main
   - https://repo.anaconda.com/pkgs/r
 dependencies:
-  - python<3.10
   - _libgcc_mutex=0.1=conda_forge
   - pip
   - _openmp_mutex=4.5=2_gnu
