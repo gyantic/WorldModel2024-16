@@ -1,16 +1,15 @@
 name: myenv
 channels:
+  - conda-forge
   - pytorch
   - nvidia
   - defaults
-  - conda-forge
   - https://repo.anaconda.com/pkgs/main
   - https://repo.anaconda.com/pkgs/r
 dependencies:
   - pytorch=2.4.0
   - torchvision
   - torchaudio=2.4.0
-  - pytorch-cuda=11.8
   - _libgcc_mutex=0.1=conda_forge
   - _openmp_mutex=4.5=2_gnu
   - binutils_impl_linux-64=2.40=h5293946_0
@@ -94,7 +93,7 @@ dependencies:
   - openssl=3.4.0=hb9d3cd8_0
   - pysocks=1.7.1=py38h06a4308_0
   - python=3.8.20=he870216_0
-  - pytorch-cuda=12.4=hc786d27_7
+  - pytorch-cuda=11.8=hc786d27_7
   - pytorch-mutex=1.0=cuda
   - readline=8.2=h5eee18b_0
   - requests=2.32.3=py38h06a4308_0
