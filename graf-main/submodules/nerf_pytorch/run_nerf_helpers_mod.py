@@ -138,19 +138,37 @@ def get_embedder(multires, i=0):
     embed = lambda x, eo=embedder_obj : eo.embed(x)
     return embed, embedder_obj.out_dim
 
+#SelfAttentionを追加
+class SelfAttention(nn.Module):
+    def __init__(self, embed_dim):
+        super(SelfAttention, self).__init__()
+        self.query = nn.Linear(embed_dim,embed_dim)
+        self.key = nn.Linear(embed_dim,embed_dim)
+        self.value = nn.Linear(embed_dim,embed_dim)
+        self.scale = embed_dim ** -0.5
+    def forward(self, x):
+        Q = self.query(x)
+        K = self.key(x)
+        V = self.value(x)
+        attn_weights = torch.softmax((Q @ K.transpose(-2, -1)) * self.scale, dim=-1)
+        out = attn_weights @ V
+        return out
+
 
 # Model
 class NeRF(nn.Module):
-    def __init__(self, D=8, W=256, input_ch=3, input_ch_views=3, output_ch=4, skips=[4], use_viewdirs=False):
+    def __init__(self, D=8, W=256, input_ch=3, input_ch_views=3, output_ch=4, skips=[4], use_viewdirs=False, embed_dim = 256):
         """
         """
         super(NeRF, self).__init__()
+        self.attention = SelfAttention(embed_dim)
         self.D = D
         self.W = W
         self.input_ch = input_ch
         self.input_ch_views = input_ch_views
         self.skips = skips
         self.use_viewdirs = use_viewdirs
+        self.embed_dim = embed_dim #埋め込み次元　(Wと同じにする)
 
         self.pts_linears = nn.ModuleList(
             [nn.Linear(input_ch, W)] + [nn.Linear(W, W) if i not in self.skips else nn.Linear(W + input_ch, W) for i in range(D-1)])
@@ -175,6 +193,8 @@ class NeRF(nn.Module):
         h = input_pts
         for i, l in enumerate(self.pts_linears):
             h = self.pts_linears[i](h)
+            attn_out = self.attention(h)     #Attention追加
+            h += attn_out #残差接続
             h = relu(h)
             if i in self.skips:
                 h = torch.cat([input_pts, h], -1)

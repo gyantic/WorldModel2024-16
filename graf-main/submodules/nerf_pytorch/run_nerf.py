@@ -149,7 +149,7 @@ def render_path(render_poses, hwf, chunk, render_kwargs, gt_imgs=None, savedir=N
 
     return rgbs, disps
 
-
+#NeRFのモデルを作成
 def create_nerf(args):
     embed_fn, input_ch = get_embedder(args.multires, args.i_embed)
 

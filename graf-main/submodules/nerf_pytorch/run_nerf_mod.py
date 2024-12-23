@@ -191,7 +191,8 @@ def create_nerf(args):
     skips = [4]
     model = NeRF(D=args.netdepth, W=args.netwidth,
                  input_ch=input_ch, output_ch=output_ch, skips=skips,
-                 input_ch_views=input_ch_views, use_viewdirs=(args.use_viewdirs or args.feat_dim_appearance > 0))
+                 input_ch_views=input_ch_views, use_viewdirs=(args.use_viewdirs or args.feat_dim_appearance > 0)
+                 )
     grad_vars = list(model.parameters())
     named_params = list(model.named_parameters())
 
