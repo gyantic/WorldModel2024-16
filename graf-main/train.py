@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
     device = torch.device("cuda:0")
 
-    # Dataset
+    #ここでDatasetを定義 get_dataはgraf/configにある
     train_dataset, hwfr, render_poses = get_data(config)
     # in case of orthographic projection replace focal length by far-near
     if config['data']['orthographic']:
