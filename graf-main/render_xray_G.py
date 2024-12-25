@@ -139,7 +139,7 @@ def reconstruct(args, config_file):
     ]
     trans = transforms.Compose(transform_list)
 
-    target_xray = glob.glob(os.path.join(args.xray_img_path, '*.png'))
+    target_xray = glob.glob(os.path.join(args.xray_img_path, '*.jpg'))  #ここで読み込む拡張子を指定 PH2なら.jpg
     target_xray = torch.unsqueeze(trans(Image.open(target_xray[0]).convert('RGB')),0)
 
     #    target_xray = target_xray.repeat(N_samples,1,1,1)
@@ -223,9 +223,10 @@ def reconstruct(args, config_file):
             test(range_phi, render_radius, theta_mean,
                  z, generator_test, N_samples, iteration,
                  img_size)
-
+        '''
         if psnr_value > args.psnr_stop:
             break
+        '''
 
         ssim_value = 0.
         psnr_value = 0.

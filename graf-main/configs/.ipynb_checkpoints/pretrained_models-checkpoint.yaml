@@ -5,7 +5,8 @@ carla:
   512: https://s3.eu-central-1.amazonaws.com/avg-projects/graf/models/carla/carla_512.pt
 celebA:
   64: https://s3.eu-central-1.amazonaws.com/avg-projects/graf/models/faces/celebA_64.pt
-  128: https://s3.eu-central-1.amazonaws.com/avg-projects/graf/models/faces/celebA_128.pt
+  #128: https://s3.eu-central-1.amazonaws.com/avg-projects/graf/models/faces/celebA_128.pt
+  128: root/WorldModel2024-16/graf-main/results/skin_all_360/chkpts/model_best.pt
 celebA_hq:
   256: https://s3.eu-central-1.amazonaws.com/avg-projects/graf/models/faces/celebA_hq_256.pt
   512: https://s3.eu-central-1.amazonaws.com/avg-projects/graf/models/faces/celebA_hq_512.pt
