@@ -24,6 +24,68 @@ np.random.seed(0)
 DEBUG = False
 
 
+#SobelLossの定義：エッジ検出
+class SobelLoss(nn.Module):
+    """
+    Compare Sobel edge magnitudes between generated & target images.
+    """
+    def __init__(self, reduction='mean'):
+        super(SobelLoss, self).__init__()
+        self.reduction = reduction
+
+        # Sobel filter for X direction, shape (1,1,3,3)
+        sobel_x = torch.tensor([[[[-1., 0., 1.],
+                                  [-2., 0., 2.],
+                                  [-1., 0., 1.]]]], dtype=torch.float32)
+
+        # Sobel filter for Y direction, shape (1,1,3,3)
+        sobel_y = torch.tensor([[[[-1., -2., -1.],
+                                  [ 0.,  0.,  0.],
+                                  [ 1.,  2.,  1.]]]], dtype=torch.float32)
+
+        # 登録しておく (学習はしない)
+        self.register_buffer('sobel_x', sobel_x)
+        self.register_buffer('sobel_y', sobel_y)
+
+    def forward(self, gen, tgt):
+        """
+        gen, tgt: (B, C, H, W),  C can be 1 or 3.
+        We convert them to grayscale if needed, and compute edge magnitude.
+        retuen -> loss(スカラー)
+        """
+        # 1) グレースケール化 (単純平均 or より適切な加重)
+        if gen.shape[1] == 3:
+            # average -> shape (B,1,H,W)
+            gen_gray = gen.mean(dim=1, keepdim=True)
+            tgt_gray = tgt.mean(dim=1, keepdim=True)
+        else:
+            gen_gray = gen
+            tgt_gray = tgt
+
+        # 2) Sobel Conv for gen
+        gx_g = F.conv2d(gen_gray, self.sobel_x, padding=1)
+        gy_g = F.conv2d(gen_gray, self.sobel_y, padding=1)
+        # Edge magnitude
+        mag_g = torch.sqrt(gx_g**2 + gy_g**2 + 1e-8)
+
+        # 3) Sobel Conv for tgt
+        gx_t = F.conv2d(tgt_gray, self.sobel_x, padding=1)
+        gy_t = F.conv2d(tgt_gray, self.sobel_y, padding=1)
+        mag_t = torch.sqrt(gx_t**2 + gy_t**2 + 1e-8)
+
+        # 4) エッジ強度の差を比較
+        diff = (mag_g - mag_t).abs()
+        if self.reduction == 'mean':
+            return diff.mean()
+        elif self.reduction == 'sum':
+            return diff.sum()
+        else:
+            #reductionがnoneの場合
+            return diff
+
+sobel_criterion = SobelLoss(reduction='mean').to(device)
+
+
 def batchify(fn, chunk):
     if chunk is None:
         return fn
@@ -579,10 +641,11 @@ def train():
     # Summary writers
     # writer = SummaryWriter(os.path.join(basedir, 'summaries', expname))
 
+    #訓練フェーズ
     for i in range(start, N_iters):
         time0 = time.time()
 
-        # Sample random ray batch
+        # Sample random ray batch = バッチサンプリング
         if use_batching:
             # Random over all images
             batch = rays_rgb[i_batch:i_batch+N_rand] # [B, 2+1, 3*?]
@@ -624,10 +687,18 @@ def train():
         loss = img_loss
         psnr = mse2psnr(img_loss)
 
+        #Sobelロスを追加
+        sobel_loss_val = sobel_criterion(rgb, target_s)
+        alpha = 0.1 #重み、調整の必要
+        loss += alpha*sobel_loss_val
+
         if 'rgb0' in extras:
             img_loss0 = img2mse(extras['rgb0'], target_s)
             loss = loss + img_loss0
             psnr0 = mse2psnr(img_loss0)
+
+            sobel_loss0 = sobel_criterion(extras['rgb0'], target_s)
+            loss = loss + alpha * sobel_loss0
 
         loss.backward()
 
