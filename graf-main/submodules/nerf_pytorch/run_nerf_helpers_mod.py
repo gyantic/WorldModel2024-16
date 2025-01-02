@@ -8,6 +8,8 @@ from functools import partial
 # TODO: remove this dependency
 
 
+# self attention を追加しました!!!!
+
 # Misc
 img2mse = lambda x, y : torch.mean((x - y) ** 2)
 mse2psnr = lambda x : -10. * torch.log(x) / torch.log(torch.Tensor([10.]))

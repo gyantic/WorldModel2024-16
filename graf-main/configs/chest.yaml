@@ -1,6 +1,6 @@
-expname: chest_all_360
+expname: chest_all_360_attention
 data:
-  datadir: projects/mednerf_drr_dataset/chest_xrays_train
+  datadir: projects/mednerf_drr_dataset/chest_xrays
   type: drr
   imsize: 128
   white_bkgd: False
