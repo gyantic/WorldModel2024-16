@@ -79,13 +79,13 @@ def test(range_phi, render_radius, theta_mean,
                                             'generated_' + '{:04d}_rgb.mp4'.format(iteration)),
                        as_gif=False, fps=fps)
 
-            
+
 def reconstruct(args, config_file):
     device = torch.device("cuda:0")
 
     _, hwfr, _ = get_data(config_file)
     config_file['data']['hwfr'] = hwfr
-    
+
     # Create models
     generator, _ = build_models(config_file, disc=False)
     generator = generator.to(device)
@@ -95,10 +95,10 @@ def reconstruct(args, config_file):
     generator_test.parameters = lambda: generator_test._parameters
     generator_test.named_parameters = lambda: generator_test._named_parameters
     checkpoint_io.register_modules(**{k + '_test': v for k, v in generator_test.module_dict.items()})
-    
+
     g_optim = optim.RMSprop(generator_test.parameters(), lr=0.0005, alpha=0.99, eps=1e-8)
 
-    
+
     # Register modules to checkpoint
     checkpoint_io.register_modules(
         g_optimizer=g_optim
@@ -139,7 +139,7 @@ def reconstruct(args, config_file):
     ]
     trans = transforms.Compose(transform_list)
 
-    target_xray = glob.glob(os.path.join(args.xray_img_path, '*.png'))
+    target_xray = glob.glob(os.path.join(args.xray_img_path, '*.png'))  #ここで読み込む拡張子を指定 PH2なら.jpg
     target_xray = torch.unsqueeze(trans(Image.open(target_xray[0]).convert('RGB')),0)
 
     #    target_xray = target_xray.repeat(N_samples,1,1,1)
@@ -164,7 +164,7 @@ def reconstruct(args, config_file):
             .expand(N_samples, -1, -1, -1).flatten(0, 1)
 
     z = z.split(batch_size)
-    
+
     log_rec_loss = 0.
     ssim_value = 0.
     psnr_value = 0.
@@ -174,7 +174,7 @@ def reconstruct(args, config_file):
         g_optim.zero_grad()
 
         n_samples = len(z)
-            
+
         rays = torch.stack([get_rays(poses[i].to(device), generator_test, img_size) for i in range(n_samples)])
         rays = rays.split(batch_size)
 
@@ -189,18 +189,18 @@ def reconstruct(args, config_file):
             reshape = lambda x: x.view(bs, img_size, img_size, x.shape[1]).permute(0, 3, 1, 2)  # (NxHxW)xC -> NxCxHxW
             rgb.append(reshape(rgb_i).cpu())
             depth.append(reshape(depth_i).cpu())
-            
+
         rgb = torch.cat(rgb)
         depth = torch.cat(depth)
 
-        
+
         reshape = lambda x: x.view(N_samples, N_frames, *x.shape[1:])
         xray_recons = reshape(rgb)
 
         rec_loss = 0.3 * percept(torch.unsqueeze(xray_recons[0][0],0),
                     target_xray).sum() +\
                     0.1 * F.mse_loss(torch.unsqueeze(xray_recons[0][0],0), target_xray)
-        
+
         rec_loss.backward()
 
         g_optim.step()
@@ -223,14 +223,15 @@ def reconstruct(args, config_file):
             test(range_phi, render_radius, theta_mean,
                  z, generator_test, N_samples, iteration,
                  img_size)
-
+        '''
         if psnr_value > args.psnr_stop:
             break
+        '''
 
         ssim_value = 0.
         psnr_value = 0.
         log_rec_loss = 0
-        
+
 if __name__ == "__main__":
     # Arguments
     parser = argparse.ArgumentParser(
@@ -246,7 +247,7 @@ if __name__ == "__main__":
 
     args, unknown = parser.parse_known_args()
     device = torch.device("cuda:0")
-        
+
     config_file = load_config(args.config_file, 'configs/default.yaml')
     config_file['data']['fov'] = float(config_file['data']['fov'])
     config_file = update_config(config_file, unknown)

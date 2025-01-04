@@ -1,6 +1,7 @@
 expname: skin_all_360
 data:
-  datadir: projects/mednerf_drr_dataset/PH2_dataset
+  datadir: projects/mednerf_drr_dataset/PH2_dataset_img_eval
+  type: celebA
   imsize: 128
   white_bkgd: False
   radius: 9.5,10.5
