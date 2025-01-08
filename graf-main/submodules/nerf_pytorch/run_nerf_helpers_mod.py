@@ -16,6 +16,25 @@ relu = partial(F.relu, inplace=True)            # saves a lot of memory
 
 # Siren version not working yet
 # TODO: Check right frequencies for our data
+
+
+#畳み込み層を追加してみる
+class ConvNeRFBlock(nn.Module):
+    def __init__(self, embed_dim, kernel_size=3):
+        super(ConvNeRFBlock, self).__init__()
+        self.conv1 = nn.Conv1d(embed_dim, embed_dim, kernel_size, padding=kernel_size // 2)
+        self.conv2 = nn.Conv1d(embed_dim, embed_dim, kernel_size, padding=kernel_size // 2)
+        self.norm = nn.LayerNorm(embed_dim)
+
+    def forward(self, x):
+        x = x.transpose(1, 2)  # (B, D, L)
+        x = F.relu(self.conv1(x))
+        x = self.conv2(x)
+        x = x.transpose(1, 2)  # (B, L, D)
+        return self.norm(x)
+
+
+
 class SineLayer(nn.Module):
     def __init__(self, in_features, out_features,
                  is_first=False, is_last=False):
@@ -152,6 +171,9 @@ class NeRF(nn.Module):
         self.skips = skips
         self.use_viewdirs = use_viewdirs
 
+        # ConvNeRFBlock for preprocessing input coordinates
+        self.conv_block = ConvNeRFBlock(embed_dim=input_ch, kernel_size=3)
+
         self.pts_linears = nn.ModuleList(
             [nn.Linear(input_ch, W)] + [nn.Linear(W, W) if i not in self.skips else nn.Linear(W + input_ch, W) for i in range(D-1)])
 
@@ -172,7 +194,9 @@ class NeRF(nn.Module):
     def forward(self, x):
         input_pts, input_views = torch.split(x, [self.input_ch, self.input_ch_views], dim=-1)
         relu = partial(F.relu, inplace=True)
-        h = input_pts
+        #h = input_pts
+        h = self.conv_block(input_pts.unsqueeze(1))
+        h.squeeze(1)
         for i, l in enumerate(self.pts_linears):
             h = self.pts_linears[i](h)
             h = relu(h)
