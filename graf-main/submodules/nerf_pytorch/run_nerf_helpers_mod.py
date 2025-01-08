@@ -172,7 +172,7 @@ class NeRF(nn.Module):
         self.use_viewdirs = use_viewdirs
 
         # ConvNeRFBlock for preprocessing input coordinates
-        self.conv_block = ConvNeRFBlock(embed_dim=input_ch, kernel_size=3)
+        self.conv_block = ConvNeRFBlock(embed_dim=W, kernel_size=3)
 
         self.pts_linears = nn.ModuleList(
             [nn.Linear(input_ch, W)] + [nn.Linear(W, W) if i not in self.skips else nn.Linear(W + input_ch, W) for i in range(D-1)])
@@ -193,10 +193,21 @@ class NeRF(nn.Module):
 
     def forward(self, x):
         input_pts, input_views = torch.split(x, [self.input_ch, self.input_ch_views], dim=-1)
-        relu = partial(F.relu, inplace=True)
+        #relu = partial(F.relu, inplace=True)
         #h = input_pts
-        h = self.conv_block(input_pts.unsqueeze(1))
-        h = h.squeeze(1)
+
+         # 1. ポジショナルエンコーディング
+        pts_pe = input_pts  # (B, input_ch)
+
+        # 2. 高次元ベクトルを複数の点として扱うためにreshape
+        B, D = pts_pe.shape
+        L = 64  # シーケンス長としてのレイ数
+        D = self.W
+        pts_pe = pts_pe.view(B, L, D)  # (B, L, D)
+
+        # 3. 畳み込みブロックの適用
+        h = self.conv_block(pts_pe)  # (B, L, D)
+
         for i, l in enumerate(self.pts_linears):
             h = self.pts_linears[i](h)
             h = relu(h)
