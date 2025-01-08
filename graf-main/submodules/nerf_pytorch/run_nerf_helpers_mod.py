@@ -20,19 +20,47 @@ relu = partial(F.relu, inplace=True)            # saves a lot of memory
 
 #畳み込み層を追加してみる
 class ConvNeRFBlock(nn.Module):
+    """
+    ConvNeRF 相当のブロック。
+    入力 (B, seq_len, embed_dim) に対して 1D 畳み込みを行い、LayerNorm で正規化する。
+    """
     def __init__(self, embed_dim, kernel_size=3):
         super(ConvNeRFBlock, self).__init__()
-        self.conv1 = nn.Conv1d(embed_dim, embed_dim, kernel_size, padding=kernel_size // 2)
-        self.conv2 = nn.Conv1d(embed_dim, embed_dim, kernel_size, padding=kernel_size // 2)
+        # Conv1d は (B, C_in, L) を入力として受け取るので、C_in=embed_dim としている
+        self.conv1 = nn.Conv1d(
+            in_channels=embed_dim,
+            out_channels=embed_dim,
+            kernel_size=kernel_size,
+            padding=kernel_size // 2
+        )
+        self.conv2 = nn.Conv1d(
+            in_channels=embed_dim,
+            out_channels=embed_dim,
+            kernel_size=kernel_size,
+            padding=kernel_size // 2
+        )
         self.norm = nn.LayerNorm(embed_dim)
 
     def forward(self, x):
-        x = x.transpose(1, 2)  # (B, D, L)
+        """
+        Args:
+            x: shape (B, seq_len, embed_dim)
+
+        Returns:
+            out: shape (B, seq_len, embed_dim)
+        """
+        # Conv1D 用に (B, embed_dim, seq_len) へ転置
+        x = x.transpose(1, 2)  # (B, embed_dim, seq_len)
+
+        # 畳み込み -> ReLU -> 畳み込み
         x = F.relu(self.conv1(x))
         x = self.conv2(x)
-        x = x.transpose(1, 2)  # (B, L, D)
-        return self.norm(x)
 
+        # 転置して (B, seq_len, embed_dim) に戻す
+        x = x.transpose(1, 2)
+        # 各時系列位置ごとに embed_dim を正規化
+        x = self.norm(x)
+        return x
 
 
 class SineLayer(nn.Module):
@@ -171,8 +199,7 @@ class NeRF(nn.Module):
         self.skips = skips
         self.use_viewdirs = use_viewdirs
 
-        # ConvNeRFBlock for preprocessing input coordinates
-        self.conv_block = ConvNeRFBlock(embed_dim=W, kernel_size=3)
+        self.conv_block = ConvNeRFBlock(embed_dim=input_ch, kernel_size=3)
 
         self.pts_linears = nn.ModuleList(
             [nn.Linear(input_ch, W)] + [nn.Linear(W, W) if i not in self.skips else nn.Linear(W + input_ch, W) for i in range(D-1)])
@@ -193,21 +220,14 @@ class NeRF(nn.Module):
 
     def forward(self, x):
         input_pts, input_views = torch.split(x, [self.input_ch, self.input_ch_views], dim=-1)
-        #relu = partial(F.relu, inplace=True)
-        #h = input_pts
+        
+        conv_in = input_pts.unsqueeze(1)  # (B, 1, input_ch)
+        conv_out = self.conv_block(conv_in)  # (B, 1, input_ch) が返る
+        # MLP に入力するときは (B, input_ch) にしたいので squeeze
+        h = conv_out.squeeze(1)  # (B, input_ch) 
 
-         # 1. ポジショナルエンコーディング
-        pts_pe = input_pts  # (B, input_ch)
-
-        # 2. 高次元ベクトルを複数の点として扱うためにreshape
-        B, D = pts_pe.shape
-        L = 64  # シーケンス長としてのレイ数
-        D = self.W
-        pts_pe = pts_pe.view(B, L, D)  # (B, L, D)
-
-        # 3. 畳み込みブロックの適用
-        h = self.conv_block(pts_pe)  # (B, L, D)
-
+        relu = partial(F.relu, inplace=True) 
+        
         for i, l in enumerate(self.pts_linears):
             h = self.pts_linears[i](h)
             h = relu(h)
