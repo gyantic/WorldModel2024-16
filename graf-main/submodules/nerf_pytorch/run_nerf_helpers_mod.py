@@ -196,7 +196,7 @@ class NeRF(nn.Module):
         relu = partial(F.relu, inplace=True)
         #h = input_pts
         h = self.conv_block(input_pts.unsqueeze(1))
-        h.squeeze(1)
+        h = h.squeeze(1)
         for i, l in enumerate(self.pts_linears):
             h = self.pts_linears[i](h)
             h = relu(h)
