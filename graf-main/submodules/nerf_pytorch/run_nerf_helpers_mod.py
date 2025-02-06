@@ -62,6 +62,80 @@ class ConvNeRFBlock(nn.Module):
         x = self.norm(x)
         return x
 
+# UNetの導入
+class DoubleConv1D(nn.Module):
+    """
+    1D畳み込みのダブルブロック:
+    Conv1d -> BatchNorm1d -> ReLU -> Conv1d -> BatchNorm1d -> ReLU
+    """
+    def __init__(self, in_channels, out_channels):
+        super(DoubleConv1D, self).__init__()
+        self.double_conv = nn.Sequential(
+            nn.Conv1d(in_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm1d(out_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(out_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm1d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        return self.double_conv(x)
+
+class ConvUNet1D(nn.Module):
+    """
+    1D 用 UNet:
+    入力は (B, in_channels, L) の形状、出力は (B, out_channels, L)。
+    下り（Encoder）と上り（Decoder）の経路によりマルチスケールな特徴抽出を行う。
+    """
+    def __init__(self, in_channels=1, out_channels=1, features=[32, 64, 128]):
+        super(ConvUNet1D, self).__init__()
+        self.downs = nn.ModuleList()
+        self.ups   = nn.ModuleList()
+        self.pool  = nn.MaxPool1d(kernel_size=2, stride=2)
+
+        current_channels = in_channels
+        # Encoder 部分
+        for feature in features:
+            self.downs.append(DoubleConv1D(current_channels, feature))
+            current_channels = feature
+
+        # Bottleneck
+        self.bottleneck = DoubleConv1D(current_channels, current_channels * 2)
+
+        # Decoder 部分 (features の逆順)
+        rev_features = features[::-1]
+        for feature in rev_features:
+            self.ups.append(
+                nn.ConvTranspose1d(current_channels * 2, feature, kernel_size=2, stride=2)
+            )
+            self.ups.append(DoubleConv1D(feature * 2, feature))
+            current_channels = feature
+
+        self.final_conv = nn.Conv1d(current_channels, out_channels, kernel_size=1)
+
+    def forward(self, x):
+        # x の形状: (B, in_channels, L)
+        skip_connections = []
+        for down in self.downs:
+            x = down(x)
+            skip_connections.append(x)
+            x = self.pool(x)
+
+        x = self.bottleneck(x)
+        skip_connections = skip_connections[::-1]
+
+        for idx in range(0, len(self.ups), 2):
+            x = self.ups[idx](x)  # 転置畳み込みでアップサンプリング
+            skip = skip_connections[idx // 2]
+            # サイズが一致しない場合、補間する
+            if x.shape[-1] != skip.shape[-1]:
+                x = F.interpolate(x, size=skip.shape[-1])
+            x = torch.cat((skip, x), dim=1)  # チャンネル方向で結合
+            x = self.ups[idx+1](x)  # ダブル畳み込み
+        return self.final_conv(x)
+
+
 
 class SineLayer(nn.Module):
     def __init__(self, in_features, out_features,
@@ -200,6 +274,8 @@ class NeRF(nn.Module):
         self.use_viewdirs = use_viewdirs
 
         self.conv_block = ConvNeRFBlock(embed_dim=input_ch, kernel_size=3)
+        # 入力が (B, input_ch) 、unsqueeze して1D UNetに入力
+        self.unet = ConvUNet1D(in_channels=1, out_channels=1, features=[32, 64, 128])
 
         self.pts_linears = nn.ModuleList(
             [nn.Linear(input_ch, W)] + [nn.Linear(W, W) if i not in self.skips else nn.Linear(W + input_ch, W) for i in range(D-1)])
@@ -220,14 +296,18 @@ class NeRF(nn.Module):
 
     def forward(self, x):
         input_pts, input_views = torch.split(x, [self.input_ch, self.input_ch_views], dim=-1)
-        
+        '''
         conv_in = input_pts.unsqueeze(1)  # (B, 1, input_ch)
         conv_out = self.conv_block(conv_in)  # (B, 1, input_ch) が返る
         # MLP に入力するときは (B, input_ch) にしたいので squeeze
-        h = conv_out.squeeze(1)  # (B, input_ch) 
+        h = conv_out.squeeze(1)  # (B, input_ch)
+        '''
 
-        relu = partial(F.relu, inplace=True) 
-        
+        h_unet = self.unet(h.unsqueeze(1)).squeeze(1)
+        h = h + h_unet
+
+        relu = partial(F.relu, inplace=True)
+
         for i, l in enumerate(self.pts_linears):
             h = self.pts_linears[i](h)
             h = relu(h)
