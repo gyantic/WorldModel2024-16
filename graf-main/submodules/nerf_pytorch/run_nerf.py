@@ -75,6 +75,11 @@ class SobelLoss(nn.Module):
 
         # 4) エッジ強度の差を比較
         diff = (mag_g - mag_t).abs()
+        diff_min = diff.detach().min()
+        diff_max = diff.detach().max()
+        range_ = diff_max - diff_min
+        if range_ > 1e-8:
+            diff = (diff - diff_min) / range_
         if self.reduction == 'mean':
             return diff.mean()
         elif self.reduction == 'sum':
