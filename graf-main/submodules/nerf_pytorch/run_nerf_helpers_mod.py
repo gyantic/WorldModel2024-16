@@ -65,8 +65,8 @@ class ConvNeRFBlock(nn.Module):
 # UNetの導入
 class DoubleConv1D(nn.Module):
     """
-    1D畳み込みのダブルブロック:
-    Conv1d -> BatchNorm1d -> ReLU -> Conv1d -> BatchNorm1d -> ReLU
+    1D 用ダブル畳み込みブロック:
+      Conv1d -> BatchNorm1d -> ReLU -> Conv1d -> BatchNorm1d -> ReLU
     """
     def __init__(self, in_channels, out_channels):
         super(DoubleConv1D, self).__init__()
@@ -82,58 +82,25 @@ class DoubleConv1D(nn.Module):
     def forward(self, x):
         return self.double_conv(x)
 
+#############################
+# 2. 1D 用 UNet (ConvUNet1D)
+#############################
 class ConvUNet1D(nn.Module):
-    """
-    1D 用 UNet:
-    入力は (B, in_channels, L) の形状、出力は (B, out_channels, L)。
-    下り（Encoder）と上り（Decoder）の経路によりマルチスケールな特徴抽出を行う。
-    """
-    def __init__(self, in_channels=1, out_channels=1, features=[32, 64, 128]):
+    def __init__(self, in_channels=1, out_channels=1, hidden_channels=4):
         super(ConvUNet1D, self).__init__()
-        self.downs = nn.ModuleList()
-        self.ups   = nn.ModuleList()
-        self.pool  = nn.MaxPool1d(kernel_size=2, stride=2)
-
-        current_channels = in_channels
-        # Encoder 部分
-        for feature in features:
-            self.downs.append(DoubleConv1D(current_channels, feature))
-            current_channels = feature
-
-        # Bottleneck
-        self.bottleneck = DoubleConv1D(current_channels, current_channels * 2)
-
-        # Decoder 部分 (features の逆順)
-        rev_features = features[::-1]
-        for feature in rev_features:
-            self.ups.append(
-                nn.ConvTranspose1d(current_channels * 2, feature, kernel_size=2, stride=2)
-            )
-            self.ups.append(DoubleConv1D(feature * 2, feature))
-            current_channels = feature
-
-        self.final_conv = nn.Conv1d(current_channels, out_channels, kernel_size=1)
+        # Encoder 部分（ここでは1層のみ）
+        self.conv1 = nn.Conv1d(in_channels, hidden_channels, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv1d(hidden_channels, hidden_channels, kernel_size=3, padding=1)
+        # Decoder 部分：skip接続を加えて出力チャネルへ
+        self.conv3 = nn.Conv1d(hidden_channels, out_channels, kernel_size=3, padding=1)
 
     def forward(self, x):
-        # x の形状: (B, in_channels, L)
-        skip_connections = []
-        for down in self.downs:
-            x = down(x)
-            skip_connections.append(x)
-            x = self.pool(x)
-
-        x = self.bottleneck(x)
-        skip_connections = skip_connections[::-1]
-
-        for idx in range(0, len(self.ups), 2):
-            x = self.ups[idx](x)  # 転置畳み込みでアップサンプリング
-            skip = skip_connections[idx // 2]
-            # サイズが一致しない場合、補間する
-            if x.shape[-1] != skip.shape[-1]:
-                x = F.interpolate(x, size=skip.shape[-1])
-            x = torch.cat((skip, x), dim=1)  # チャンネル方向で結合
-            x = self.ups[idx+1](x)  # ダブル畳み込み
-        return self.final_conv(x)
+        # x: (B, in_channels, L)
+        x1 = F.relu(self.conv1(x))      # (B, hidden_channels, L)
+        x2 = F.relu(self.conv2(x1))       # (B, hidden_channels, L)
+        # シンプルなskip接続: x2 と x1 を足し合わせる
+        out = self.conv3(x2 + x1)         # (B, out_channels, L)
+        return out
 
 
 
@@ -303,8 +270,7 @@ class NeRF(nn.Module):
         h = conv_out.squeeze(1)  # (B, input_ch)
         '''
 
-        h_unet = self.unet(h.unsqueeze(1)).squeeze(1)
-        h = h + h_unet
+        h = self.unet(h.unsqueeze(1)).squeeze(1)
 
         relu = partial(F.relu, inplace=True)
 
