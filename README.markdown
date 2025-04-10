@@ -5,15 +5,15 @@ MeDNeRFの再構成結果の視認性の向上を目指す。(診断上の有用
 
 ## 具体的な研究内容
 1.エッジロスの導入：境界の明瞭さの向上を狙う
-createEdgeLossブランチに実装を行いました
+create-edge-lossブランチに実装を行いました    実装上：SobelLossを使用することで勾配降下法を適用可能にしています
 
 2.UNetの導入：微小構造の再構成精度の向上を狙う
-addConvLayerブランチに実装を行いました
+addConvLayerブランチに実装を行いました    実装上：計算リソースの関係及びUNetの効果の検証が目的なため, 1次元に適用される簡易UNetを使用しています
 
 ## 終りに
 この研究は人工知能学会2025のOS「世界モデルと知能」で発表予定です
 
-
+以下、MeDNeRFのリポジトリの引用です
 ------------------------------------------------------------------------------------------------------------------------------------
 # MedNeRF: Medical Neural Radiance Fields for Reconstructing 3D-aware CT-Projections from a Single X-ray
 [Paper](https://arxiv.org/abs/2202.01020)
