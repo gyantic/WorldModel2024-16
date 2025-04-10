@@ -1,5 +1,20 @@
-# MedNeRF: Medical Neural Radiance Fields for Reconstructing 3D-aware CT-Projections from a Single X-ray
+このリポジトリは東京大学松尾研主宰世界モデル2024の最終課題で取り組んだものです
 
+## 研究の目的
+MeDNeRFの再構成結果の視認性の向上を目指す。(診断上の有用度向上を狙って)
+
+## 具体的な研究内容
+1.エッジロスの導入：境界の明瞭さの向上を狙う
+
+2.UNetの導入：微小構造の再構成精度の向上を狙う
+
+
+## 終りに
+この研究は人工知能学会2025のOS「世界モデルと知能」で発表予定です
+
+
+------------------------------------------------------------------------------------------------------------------------------------
+# MedNeRF: Medical Neural Radiance Fields for Reconstructing 3D-aware CT-Projections from a Single X-ray
 [Paper](https://arxiv.org/abs/2202.01020)
 Accepted at IEEE EMBC 2022
 
